@@ -4,17 +4,17 @@ import type React from "react"
 
 import { useState, useEffect, useMemo } from "react"
 import PortfolioInput from "./components/PortfolioInput"
-import Dashboard from "./components/Dashboard"
 
 const ALLOCATION_RULES = [
-  { minPrice: 300, maxPrice: Number.POSITIVE_INFINITY, solTarget: 0.3 },
-  { minPrice: 260, maxPrice: 299, solTarget: 0.4 },
-  { minPrice: 220, maxPrice: 259, solTarget: 0.5 },
-  { minPrice: 200, maxPrice: 219, solTarget: 0.6 },
-  { minPrice: 170, maxPrice: 199, solTarget: 0.65 },
-  { minPrice: 140, maxPrice: 169, solTarget: 0.75 },
-  { minPrice: 110, maxPrice: 139, solTarget: 0.8 },
-  { minPrice: 0, maxPrice: 109, solTarget: 0.85 },
+  { minPrice: 140000, maxPrice: Number.POSITIVE_INFINITY, btcTarget: 0.2 },
+  { minPrice: 130000, maxPrice: 139999, btcTarget: 0.25 },
+  { minPrice: 120000, maxPrice: 129999, btcTarget: 0.3 },
+  { minPrice: 109000, maxPrice: 119999, btcTarget: 0.35 },
+  { minPrice: 99000, maxPrice: 108999, btcTarget: 0.45 },
+  { minPrice: 89000, maxPrice: 98999, btcTarget: 0.55 },
+  { minPrice: 79000, maxPrice: 88999, btcTarget: 0.65 },
+  { minPrice: 69000, maxPrice: 78999, btcTarget: 0.75 },
+  { minPrice: 0, maxPrice: 68999, btcTarget: 0.8 },
 ]
 
 interface CycleHistory {
@@ -24,21 +24,21 @@ interface CycleHistory {
   date: string
   price: string
   profit: string
-  solAmount: number
+  btcAmount: number
   usdcAmount: number
 }
 
 interface PortfolioData {
-  solAmount: string
+  btcAmount: string
   usdcAmount: string
   cycleHistory: CycleHistory[]
   currentCycle: number
 }
 
 export default function HomePage() {
-  const [solAmount, setSolAmount] = useState("")
+  const [btcAmount, setBtcAmount] = useState("")
   const [usdcAmount, setUsdcAmount] = useState("")
-  const [solPrice, setSolPrice] = useState<number | null>(null)
+  const [btcPrice, setBtcPrice] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   const [cycleHistory, setCycleHistory] = useState<CycleHistory[]>([])
@@ -67,126 +67,50 @@ export default function HomePage() {
   useEffect(() => {
     const savedData = loadFromLocalStorage()
     if (savedData) {
-      setSolAmount(savedData.solAmount)
-      setUsdcAmount(savedData.usdcAmount)
-      setCycleHistory(savedData.cycleHistory)
-      setCurrentCycle(savedData.currentCycle)
+      setBtcAmount(savedData.btcAmount || "")
+      setUsdcAmount(savedData.usdcAmount || "")
+      setCycleHistory(savedData.cycleHistory || [])
+      setCurrentCycle(savedData.currentCycle || 1)
     }
   }, [])
 
   useEffect(() => {
     const dataToSave: PortfolioData = {
-      solAmount,
-      usdcAmount,
+      btcAmount: btcAmount || "",
+      usdcAmount: usdcAmount || "",
       cycleHistory,
       currentCycle,
     }
     saveToLocalStorage(dataToSave)
-  }, [solAmount, usdcAmount, cycleHistory, currentCycle])
+  }, [btcAmount, usdcAmount, cycleHistory, currentCycle])
 
-  useEffect(() => {
-    const fetchSolPrice = async () => {
-      console.log("[v0] Attempting to fetch SOL price...")
-
-      // Try multiple API endpoints for better reliability
-      const apiEndpoints = [
-        "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd",
-        "https://api.coinbase.com/v2/exchange-rates?currency=SOL",
-        "https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT",
-      ]
-
-      for (let i = 0; i < apiEndpoints.length; i++) {
-        try {
-          console.log(`[v0] Trying API endpoint ${i + 1}:`, apiEndpoints[i])
-
-          const response = await fetch(apiEndpoints[i], {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-              "Content-Type": "application/json",
-            },
-            mode: "cors",
-          })
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
-
-          const data = await response.json()
-          console.log("[v0] API response:", data)
-
-          let price: number
-
-          // Parse different API response formats
-          if (i === 0) {
-            // CoinGecko
-            price = data.solana?.usd
-          } else if (i === 1) {
-            // Coinbase
-            price = Number.parseFloat(data.data?.rates?.USD || "0")
-          } else {
-            // Binance
-            price = Number.parseFloat(data.price || "0")
-          }
-
-          if (price && price > 0) {
-            console.log("[v0] Successfully fetched SOL price:", price)
-            setSolPrice(price)
-            setIsLoading(false)
-            return // Success, exit the loop
-          }
-        } catch (error) {
-          console.log(`[v0] API endpoint ${i + 1} failed:`, error)
-
-          // If this is the last endpoint, set a fallback price
-          if (i === apiEndpoints.length - 1) {
-            console.log("[v0] All API endpoints failed, using fallback price")
-            // Set a reasonable fallback price (you can update this manually)
-            setSolPrice(200) // Fallback price
-            setIsLoading(false)
-          }
-        }
-      }
-    }
-
-    fetchSolPrice()
-    // Increase interval to reduce API calls and potential rate limiting
-    const interval = setInterval(fetchSolPrice, 60000) // 1 minute instead of 30 seconds
-
-    return () => clearInterval(interval)
-  }, [])
-
-  // useMemo para calcular os dados do dashboard apenas quando necessário
   const dashboardData = useMemo(() => {
-    const sol = Number.parseFloat(solAmount)
+    const btc = Number.parseFloat(btcAmount)
     const usdc = Number.parseFloat(usdcAmount)
 
-    if (!solPrice || isNaN(sol) || isNaN(usdc) || sol < 0 || usdc < 0) {
+    if (!btcPrice || isNaN(btc) || isNaN(usdc) || btc < 0 || usdc < 0) {
       return null
     }
 
-    // 1. Cálculos do Portfólio Atual
-    const currentSolValue = sol * solPrice
+    const currentBtcValue = btc * btcPrice
     const currentUsdcValue = usdc
-    const totalValue = currentSolValue + currentUsdcValue
+    const totalValue = currentBtcValue + currentUsdcValue
     if (totalValue === 0) return null
-    const currentSolPercentage = currentSolValue / totalValue
+    const currentBtcPercentage = currentBtcValue / totalValue
 
-    let targetSolPercentage = ALLOCATION_RULES[ALLOCATION_RULES.length - 1].solTarget
+    let targetBtcPercentage = ALLOCATION_RULES[ALLOCATION_RULES.length - 1].btcTarget
     for (const rule of ALLOCATION_RULES) {
-      if (solPrice >= rule.minPrice && solPrice <= rule.maxPrice) {
-        targetSolPercentage = rule.solTarget
+      if (btcPrice >= rule.minPrice && btcPrice <= rule.maxPrice) {
+        targetBtcPercentage = rule.btcTarget
         break
       }
     }
 
-    // 3. Cálculos da Alocação Recomendada
-    const targetSolValue = totalValue * targetSolPercentage
-    const targetUsdcValue = totalValue * (1 - targetSolPercentage)
+    const targetBtcValue = totalValue * targetBtcPercentage
+    const targetUsdcValue = totalValue * (1 - targetBtcPercentage)
 
-    // 4. Determinar a Ação Necessária
-    const differenceInUsd = currentSolValue - targetSolValue
-    const threshold = 1 // Não sugerir trocas por menos de $1 de diferença
+    const differenceInUsd = currentBtcValue - targetBtcValue
+    const threshold = 1
 
     let action: "BUY" | "SELL" | "HOLD" = "HOLD"
     let amountToTradeUsd = 0
@@ -199,40 +123,40 @@ export default function HomePage() {
       amountToTradeUsd = Math.abs(differenceInUsd)
     }
 
-    const amountToTradeSol = amountToTradeUsd / solPrice
+    const amountToTradeBtc = amountToTradeUsd / btcPrice
 
     return {
-      currentSolValue,
+      currentBtcValue,
       currentUsdcValue,
       totalValue,
-      currentSolPercentage,
-      targetSolPercentage,
-      targetSolValue,
+      currentBtcPercentage,
+      targetBtcPercentage,
+      targetBtcValue,
       targetUsdcValue,
       action,
       amountToTradeUsd,
-      amountToTradeSol,
+      amountToTradeBtc,
     }
-  }, [solAmount, usdcAmount, solPrice])
+  }, [btcAmount, usdcAmount, btcPrice])
 
   const registerInitialDeposit = () => {
-    const sol = Number.parseFloat(solAmount)
+    const btc = Number.parseFloat(btcAmount)
     const usdc = Number.parseFloat(usdcAmount)
 
-    if (!solPrice || isNaN(sol) || isNaN(usdc) || sol < 0 || usdc < 0) {
-      alert("Por favor, insira valores válidos para SOL e USDC")
+    if (!btcPrice || isNaN(btc) || isNaN(usdc) || btc < 0 || usdc < 0) {
+      alert("Por favor, insira valores válidos para BTC e USDC")
       return
     }
 
-    const totalValue = sol * solPrice + usdc
+    const totalValue = btc * btcPrice + usdc
     const newCycle: CycleHistory = {
       cycle: 1,
       total: Math.round(totalValue),
       status: "DEPÓSITO",
       date: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
-      price: solPrice.toFixed(0),
+      price: btcPrice.toFixed(0),
       profit: "",
-      solAmount: sol,
+      btcAmount: btc,
       usdcAmount: usdc,
     }
 
@@ -241,15 +165,15 @@ export default function HomePage() {
   }
 
   const registerMovement = (action: "COMPRA" | "VENDA") => {
-    const sol = Number.parseFloat(solAmount)
+    const btc = Number.parseFloat(btcAmount)
     const usdc = Number.parseFloat(usdcAmount)
 
-    if (!solPrice || isNaN(sol) || isNaN(usdc) || sol < 0 || usdc < 0) {
-      alert("Por favor, insira valores válidos para SOL e USDC")
+    if (!btcPrice || isNaN(btc) || isNaN(usdc) || btc < 0 || usdc < 0) {
+      alert("Por favor, insira valores válidos para BTC e USDC")
       return
     }
 
-    const totalValue = sol * solPrice + usdc
+    const totalValue = btc * btcPrice + usdc
     const previousCycle = cycleHistory[cycleHistory.length - 1]
     const profit = previousCycle ? totalValue - previousCycle.total : 0
 
@@ -258,9 +182,9 @@ export default function HomePage() {
       total: Math.round(totalValue),
       status: action,
       date: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
-      price: solPrice.toFixed(0),
+      price: btcPrice.toFixed(0),
       profit: profit > 0 ? `+${Math.round(profit)}` : Math.round(profit).toString(),
-      solAmount: sol,
+      btcAmount: btc,
       usdcAmount: usdc,
     }
 
@@ -271,14 +195,14 @@ export default function HomePage() {
   const resetHistory = () => {
     setCycleHistory([])
     setCurrentCycle(1)
-    setSolAmount("")
+    setBtcAmount("")
     setUsdcAmount("")
     localStorage.removeItem(STORAGE_KEY)
   }
 
   const exportData = () => {
     const dataToExport: PortfolioData = {
-      solAmount,
+      btcAmount,
       usdcAmount,
       cycleHistory,
       currentCycle,
@@ -306,17 +230,16 @@ export default function HomePage() {
       try {
         const importedData: PortfolioData = JSON.parse(e.target?.result as string)
 
-        // Validate imported data structure
         if (
-          importedData.solAmount !== undefined &&
+          importedData.btcAmount !== undefined &&
           importedData.usdcAmount !== undefined &&
           Array.isArray(importedData.cycleHistory) &&
           typeof importedData.currentCycle === "number"
         ) {
-          setSolAmount(importedData.solAmount)
-          setUsdcAmount(importedData.usdcAmount)
-          setCycleHistory(importedData.cycleHistory)
-          setCurrentCycle(importedData.currentCycle)
+          setBtcAmount(importedData.btcAmount || "")
+          setUsdcAmount(importedData.usdcAmount || "")
+          setCycleHistory(importedData.cycleHistory || [])
+          setCurrentCycle(importedData.currentCycle || 1)
 
           alert("Dados importados com sucesso!")
         } else {
@@ -328,12 +251,10 @@ export default function HomePage() {
     }
     reader.readAsText(file)
 
-    // Reset input value to allow importing the same file again
     event.target.value = ""
   }
 
   const syncToCloud = async () => {
-    // TODO: Implement Supabase integration for automatic sync
     alert("Funcionalidade de sincronização na nuvem será implementada em breve!")
   }
 
@@ -353,11 +274,11 @@ export default function HomePage() {
 
       <div className="text-right mb-4">
         <span className="text-sm text-gray-600">
-          Preço Atual da SOL:{" "}
+          Preço Atual do BTC:{" "}
           {isLoading ? (
             <span className="animate-pulse">...</span>
-          ) : solPrice ? (
-            <span className="font-bold text-green-600">${solPrice.toFixed(2)}</span>
+          ) : btcPrice ? (
+            <span className="font-bold text-green-600">${btcPrice.toFixed(2)}</span>
           ) : (
             <span className="text-red-500">Erro ao buscar</span>
           )}
@@ -367,9 +288,9 @@ export default function HomePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <PortfolioInput
-            solAmount={solAmount}
+            btcAmount={btcAmount}
             usdcAmount={usdcAmount}
-            setSolAmount={setSolAmount}
+            setBtcAmount={setBtcAmount}
             setUsdcAmount={setUsdcAmount}
           />
 
@@ -379,7 +300,7 @@ export default function HomePage() {
                 <button
                   onClick={registerInitialDeposit}
                   className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
-                  disabled={!solAmount || !usdcAmount || !solPrice}
+                  disabled={!btcAmount || !usdcAmount || !btcPrice}
                 >
                   Registrar Depósito Inicial (Ciclo 1)
                 </button>
@@ -388,14 +309,14 @@ export default function HomePage() {
                   <button
                     onClick={() => registerMovement("COMPRA")}
                     className="px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-medium"
-                    disabled={!solAmount || !usdcAmount || !solPrice}
+                    disabled={!btcAmount || !usdcAmount || !btcPrice}
                   >
                     Registrar COMPRA (Ciclo {currentCycle})
                   </button>
                   <button
                     onClick={() => registerMovement("VENDA")}
                     className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium"
-                    disabled={!solAmount || !usdcAmount || !solPrice}
+                    disabled={!btcAmount || !usdcAmount || !btcPrice}
                   >
                     Registrar VENDA (Ciclo {currentCycle})
                   </button>
@@ -447,12 +368,62 @@ export default function HomePage() {
             </div>
           </div>
 
-          <Dashboard
-            data={dashboardData}
-            solPrice={solPrice}
-            isLoading={isLoading}
-            allocationRules={ALLOCATION_RULES}
-          />
+          <div className="bg-white rounded-lg shadow-sm border">
+            <div className="bg-gray-100 px-4 py-2 border-b">
+              <div className="grid grid-cols-4 gap-2 text-sm font-medium text-gray-700">
+                <span>TOTAL</span>
+                <span>STATUS</span>
+                <span>DATA</span>
+                <span>LUCRO</span>
+              </div>
+            </div>
+            <div className="max-h-96 overflow-y-auto">
+              {cycleHistory.length === 0 ? (
+                <div className="px-4 py-8 text-center text-gray-500">
+                  <p>Nenhum ciclo registrado ainda.</p>
+                  <p className="text-sm mt-1">Comece registrando seu depósito inicial.</p>
+                </div>
+              ) : (
+                cycleHistory.map((cycle) => (
+                  <div key={cycle.cycle} className="px-4 py-2 border-b border-gray-100 hover:bg-gray-50">
+                    <div className="grid grid-cols-4 gap-2 text-sm">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-gray-500">CICLO {cycle.cycle}</span>
+                        <span className="font-mono font-medium">{cycle.total}</span>
+                      </div>
+                      <div>
+                        {cycle.status && (
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium ${
+                              cycle.status === "VENDA"
+                                ? "bg-green-100 text-green-800"
+                                : cycle.status === "COMPRA"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
+                            {cycle.status}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-600">{cycle.date}</div>
+                      <div
+                        className={`text-xs font-medium ${
+                          cycle.profit && cycle.profit.startsWith("+")
+                            ? "text-green-600"
+                            : cycle.profit && cycle.profit !== ""
+                              ? "text-red-600"
+                              : "text-gray-400"
+                        }`}
+                      >
+                        {cycle.profit || "-"}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border">

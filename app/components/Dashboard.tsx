@@ -1,24 +1,23 @@
 "use client"
 
-// Tipagem para os dados calculados
 interface DashboardData {
-  currentSolValue: number
+  currentBtcValue: number // Changed from currentSolValue
   currentUsdcValue: number
   totalValue: number
-  currentSolPercentage: number
-  targetSolPercentage: number
-  targetSolValue: number
+  currentBtcPercentage: number // Changed from currentSolPercentage
+  targetBtcPercentage: number // Changed from targetSolPercentage
+  targetBtcValue: number // Changed from targetSolValue
   targetUsdcValue: number
   action: "BUY" | "SELL" | "HOLD"
   amountToTradeUsd: number
-  amountToTradeSol: number
+  amountToTradeBtc: number // Changed from amountToTradeSol
 }
 
 interface DashboardProps {
   data: DashboardData | null
-  solPrice: number | null
+  btcPrice: number | null // Changed from solPrice to btcPrice
   isLoading: boolean
-  allocationRules: Array<{ minPrice: number; maxPrice: number; solTarget: number }>
+  allocationRules: Array<{ minPrice: number; maxPrice: number; btcTarget: number }> // Changed from solTarget to btcTarget
 }
 
 // Helper para formatar moeda
@@ -37,12 +36,14 @@ const formatPercent = (value: number) => {
   }).format(value)
 }
 
-export default function Dashboard({ data, solPrice, isLoading, allocationRules }: DashboardProps) {
+export default function Dashboard({ data, btcPrice, isLoading, allocationRules }: DashboardProps) {
+  // Changed from solPrice to btcPrice
   if (isLoading) {
-    return <div className="text-center text-blue-600">Buscando preço da SOL...</div>
+    return <div className="text-center text-blue-600">Buscando preço do BTC...</div> // Changed from SOL to BTC
   }
 
-  if (!solPrice || !data || data.totalValue === 0) {
+  if (!btcPrice || !data || data.totalValue === 0) {
+    // Changed from solPrice to btcPrice
     return (
       <div className="text-center bg-white p-6 rounded-lg shadow-sm border">
         <p className="text-gray-500">Insira as quantidades do seu portfólio para começar.</p>
@@ -70,14 +71,17 @@ export default function Dashboard({ data, solPrice, isLoading, allocationRules }
               </thead>
               <tbody>
                 <tr className="border-b">
-                  <td className="py-2 font-medium">SOL</td>
-                  <td className="py-2 text-right font-mono">{Math.round(data.currentSolValue)}</td>
-                  <td className="py-2 text-right">{(data.currentSolPercentage * 100).toFixed(2)}%</td>
+                  <td className="py-2 font-medium">BTC</td> {/* Changed from SOL to BTC */}
+                  <td className="py-2 text-right font-mono">{Math.round(data.currentBtcValue)}</td>{" "}
+                  {/* Changed from currentSolValue to currentBtcValue */}
+                  <td className="py-2 text-right">{(data.currentBtcPercentage * 100).toFixed(2)}%</td>{" "}
+                  {/* Changed from currentSolPercentage to currentBtcPercentage */}
                 </tr>
                 <tr className="border-b">
                   <td className="py-2 font-medium">USDC</td>
                   <td className="py-2 text-right font-mono">{Math.round(data.currentUsdcValue)}</td>
-                  <td className="py-2 text-right">{((1 - data.currentSolPercentage) * 100).toFixed(2)}%</td>
+                  <td className="py-2 text-right">{((1 - data.currentBtcPercentage) * 100).toFixed(2)}%</td>{" "}
+                  {/* Changed from currentSolPercentage to currentBtcPercentage */}
                 </tr>
                 <tr className="font-bold">
                   <td className="py-2">TOTAL</td>
@@ -105,14 +109,17 @@ export default function Dashboard({ data, solPrice, isLoading, allocationRules }
               </thead>
               <tbody>
                 <tr className="border-b">
-                  <td className="py-2 font-medium">SOL</td>
-                  <td className="py-2 text-right font-mono">{Math.round(data.targetSolValue)}</td>
-                  <td className="py-2 text-right">{(data.targetSolPercentage * 100).toFixed(2)}%</td>
+                  <td className="py-2 font-medium">BTC</td> {/* Changed from SOL to BTC */}
+                  <td className="py-2 text-right font-mono">{Math.round(data.targetBtcValue)}</td>{" "}
+                  {/* Changed from targetSolValue to targetBtcValue */}
+                  <td className="py-2 text-right">{(data.targetBtcPercentage * 100).toFixed(2)}%</td>{" "}
+                  {/* Changed from targetSolPercentage to targetBtcPercentage */}
                 </tr>
                 <tr className="border-b">
                   <td className="py-2 font-medium">USDC</td>
                   <td className="py-2 text-right font-mono">{Math.round(data.targetUsdcValue)}</td>
-                  <td className="py-2 text-right">{((1 - data.targetSolPercentage) * 100).toFixed(2)}%</td>
+                  <td className="py-2 text-right">{((1 - data.targetBtcPercentage) * 100).toFixed(2)}%</td>{" "}
+                  {/* Changed from targetSolPercentage to targetBtcPercentage */}
                 </tr>
                 <tr className="font-bold">
                   <td className="py-2">TOTAL</td>
@@ -128,15 +135,17 @@ export default function Dashboard({ data, solPrice, isLoading, allocationRules }
       {/* Price Range Allocation Table */}
       <div className="bg-white rounded-lg shadow-sm border">
         <div className="bg-gray-100 px-4 py-2 border-b">
-          <h3 className="font-bold text-gray-800">ESCOLHA %SOL DE ACORDO COM O PREÇO DELA</h3>
+          <h3 className="font-bold text-gray-800">ESCOLHA %BTC DE ACORDO COM O PREÇO DELE</h3>{" "}
+          {/* Changed from %SOL to %BTC */}
         </div>
         <div className="p-4">
           <table className="w-full">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-2 text-sm font-medium text-gray-600">RANGE</th>
-                <th className="text-right py-2 text-sm font-medium text-gray-600">%SOL</th>
-                <th className="text-left py-2 text-sm font-medium text-gray-600">PREÇO SOL</th>
+                <th className="text-left py-2 text-sm font-medium text-gray-600">PREÇO BTC</th>{" "}
+                {/* Changed from RANGE to PREÇO BTC */}
+                <th className="text-right py-2 text-sm font-medium text-gray-600">%BTC</th>{" "}
+                {/* Changed from %SOL to %BTC */}
               </tr>
             </thead>
             <tbody>
@@ -144,16 +153,18 @@ export default function Dashboard({ data, solPrice, isLoading, allocationRules }
                 <tr
                   key={index}
                   className={`border-b ${
-                    solPrice && solPrice >= rule.minPrice && solPrice <= rule.maxPrice
+                    btcPrice && btcPrice >= rule.minPrice && btcPrice <= rule.maxPrice // Changed from solPrice to btcPrice
                       ? "bg-blue-50 border-blue-200"
                       : ""
                   }`}
                 >
                   <td className="py-2 font-mono">
-                    {rule.maxPrice === Number.POSITIVE_INFINITY ? `${rule.minPrice} INFINITO` : `${rule.minPrice}`}
+                    {rule.maxPrice === Number.POSITIVE_INFINITY
+                      ? `≥ $${rule.minPrice.toLocaleString()}`
+                      : `$${rule.minPrice.toLocaleString()} - $${rule.maxPrice.toLocaleString()}`}
                   </td>
-                  <td className="py-2 text-right font-bold">{(rule.solTarget * 100).toFixed(2)}%</td>
-                  <td className="py-2">{rule.maxPrice === Number.POSITIVE_INFINITY ? rule.minPrice : rule.maxPrice}</td>
+                  <td className="py-2 text-right font-bold">{(rule.btcTarget * 100).toFixed(0)}%</td>{" "}
+                  {/* Changed from solTarget to btcTarget */}
                 </tr>
               ))}
             </tbody>
@@ -184,7 +195,8 @@ export default function Dashboard({ data, solPrice, isLoading, allocationRules }
           {data.action !== "HOLD" && (
             <p className="text-lg font-mono">
               ${Math.round(data.amountToTradeUsd)}
-              <span className="text-sm text-gray-600 ml-2">({data.amountToTradeSol.toFixed(4)} SOL)</span>
+              <span className="text-sm text-gray-600 ml-2">({data.amountToTradeBtc.toFixed(6)} BTC)</span>{" "}
+              {/* Changed from amountToTradeSol to amountToTradeBtc and SOL to BTC */}
             </p>
           )}
         </div>
