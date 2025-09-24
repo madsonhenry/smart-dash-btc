@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useEffect, useMemo } from "react"
 import PortfolioInput from "./components/PortfolioInput"
+import Dashboard from "./components/Dashboard"
 
 const ALLOCATION_RULES = [
   { minPrice: 140000, maxPrice: Number.POSITIVE_INFINITY, btcTarget: 0.2 },
@@ -14,7 +15,7 @@ const ALLOCATION_RULES = [
   { minPrice: 89000, maxPrice: 98999, btcTarget: 0.55 },
   { minPrice: 79000, maxPrice: 88999, btcTarget: 0.65 },
   { minPrice: 69000, maxPrice: 78999, btcTarget: 0.75 },
-  { minPrice: 0, maxPrice: 68999, btcTarget: 0.8 },
+  { minPrice: 59000, maxPrice: 68999, btcTarget: 0.8 }, // Updated range to include 59k-68k with 80%
 ]
 
 interface CycleHistory {
@@ -258,6 +259,45 @@ export default function HomePage() {
     alert("Funcionalidade de sincronização na nuvem será implementada em breve!")
   }
 
+  const fetchBtcPrice = async () => {
+    try {
+      console.log("[v0] Iniciando busca do preço do BTC...")
+      setIsLoading(true)
+
+      const response = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd")
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log("[v0] Dados recebidos da API:", data)
+
+      if (data.bitcoin && data.bitcoin.usd) {
+        const price = data.bitcoin.usd
+        console.log("[v0] Preço do BTC obtido:", price)
+        setBtcPrice(price)
+      } else {
+        throw new Error("Formato de dados inválido")
+      }
+    } catch (error) {
+      console.error("[v0] Erro ao buscar preço do BTC:", error)
+      setBtcPrice(null)
+    } finally {
+      setIsLoading(false)
+      console.log("[v0] Busca do preço finalizada")
+    }
+  }
+
+  useEffect(() => {
+    fetchBtcPrice()
+
+    // Update price every 30 seconds
+    const interval = setInterval(fetchBtcPrice, 30000)
+
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <main className="container mx-auto p-4 max-w-7xl bg-gray-50 min-h-screen">
       <header className="bg-white border-b-2 border-green-500 p-4 mb-6 rounded-t-lg">
@@ -276,22 +316,29 @@ export default function HomePage() {
         <span className="text-sm text-gray-600">
           Preço Atual do BTC:{" "}
           {isLoading ? (
-            <span className="animate-pulse">...</span>
+            <span className="animate-pulse">Carregando...</span>
           ) : btcPrice ? (
-            <span className="font-bold text-green-600">${btcPrice.toFixed(2)}</span>
+            <span className="font-bold text-green-600">${btcPrice.toLocaleString()}</span>
           ) : (
             <span className="text-red-500">Erro ao buscar</span>
           )}
         </span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
           <PortfolioInput
             btcAmount={btcAmount}
             usdcAmount={usdcAmount}
             setBtcAmount={setBtcAmount}
             setUsdcAmount={setUsdcAmount}
+          />
+
+          <Dashboard
+            data={dashboardData}
+            btcPrice={btcPrice}
+            isLoading={isLoading}
+            allocationRules={ALLOCATION_RULES}
           />
 
           <div className="bg-white rounded-lg shadow-sm border p-4">
@@ -365,63 +412,6 @@ export default function HomePage() {
                   • <strong>Sync:</strong> Sincronização automática na nuvem (em desenvolvimento)
                 </li>
               </ul>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="bg-gray-100 px-4 py-2 border-b">
-              <div className="grid grid-cols-4 gap-2 text-sm font-medium text-gray-700">
-                <span>TOTAL</span>
-                <span>STATUS</span>
-                <span>DATA</span>
-                <span>LUCRO</span>
-              </div>
-            </div>
-            <div className="max-h-96 overflow-y-auto">
-              {cycleHistory.length === 0 ? (
-                <div className="px-4 py-8 text-center text-gray-500">
-                  <p>Nenhum ciclo registrado ainda.</p>
-                  <p className="text-sm mt-1">Comece registrando seu depósito inicial.</p>
-                </div>
-              ) : (
-                cycleHistory.map((cycle) => (
-                  <div key={cycle.cycle} className="px-4 py-2 border-b border-gray-100 hover:bg-gray-50">
-                    <div className="grid grid-cols-4 gap-2 text-sm">
-                      <div className="flex flex-col">
-                        <span className="text-xs text-gray-500">CICLO {cycle.cycle}</span>
-                        <span className="font-mono font-medium">{cycle.total}</span>
-                      </div>
-                      <div>
-                        {cycle.status && (
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${
-                              cycle.status === "VENDA"
-                                ? "bg-green-100 text-green-800"
-                                : cycle.status === "COMPRA"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-blue-100 text-blue-800"
-                            }`}
-                          >
-                            {cycle.status}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-600">{cycle.date}</div>
-                      <div
-                        className={`text-xs font-medium ${
-                          cycle.profit && cycle.profit.startsWith("+")
-                            ? "text-green-600"
-                            : cycle.profit && cycle.profit !== ""
-                              ? "text-red-600"
-                              : "text-gray-400"
-                        }`}
-                      >
-                        {cycle.profit || "-"}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
             </div>
           </div>
         </div>
